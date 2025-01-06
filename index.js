@@ -1,5 +1,4 @@
 const express = require('express');
-const serverless = require('serverless-http');
 const { Pool } = require('pg');
 const cors = require('cors');
 const AWS = require('aws-sdk');
@@ -54,13 +53,7 @@ const pool = new Pool({
     ssl: true,
 });
 
-app.use(express.static('ens-cp-fe')); 
-
 app.use(express.json());
-
-app.get('/', (req, res) => {
-    res.sendFile(__dirname + '/ens-cp-fe/index.html');
-});
 
 app.get('/clients', async (req, res) => {
   try {

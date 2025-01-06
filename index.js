@@ -1,4 +1,5 @@
 const express = require('express');
+const serverless = require('serverless-http');
 const { Pool } = require('pg');
 const cors = require('cors');
 const AWS = require('aws-sdk');

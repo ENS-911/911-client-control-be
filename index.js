@@ -164,6 +164,23 @@ app.put('/clients/:id', async (req, res) => {
     }
 });
 
+app.delete('/clients/:id', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+      const result = await pool.query('DELETE FROM clients WHERE id = $1', [id]);
+
+      if (result.rowCount === 0) {
+          return res.status(404).json({ error: 'Client not found' });
+      }
+
+      res.status(200).json({ message: 'Client deleted successfully' });
+  } catch (error) {
+      console.error('Error deleting client:', error);
+      res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
 app.put('/register', async (req, res) => {
   const { key, email, role } = req.body;
 

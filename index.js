@@ -349,6 +349,60 @@ app.post('/login', async (req, res) => {
   }
 });
 
+app.post('/admin-login', async (req, res) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
+  }
+
+  try {
+      // Fetch user from the database
+      const queryResult = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+      const user = queryResult.rows[0];
+
+      if (!user) {
+          return res.status(404).json({ error: 'User not found' });
+      }
+
+      // Verify the password
+      const isMatch = await bcrypt.compare(password, user.password);
+
+      if (!isMatch) {
+          return res.status(401).json({ error: 'Invalid credentials' });
+      }
+
+      // Check user role (must be ENS Admin)
+      if (user.role !== 'ENS Admin') {
+          return res.status(403).json({ error: 'Access restricted to ENS Admin users only.' });
+      }
+
+      // Generate a JWT token for the ENS Admin user
+      const token = jwt.sign(
+          { userId: user.id, email: user.email, role: user.role },
+          jwtSecretKey,
+          { expiresIn: '6h' } // Token expires in 6 hours
+      );
+
+      // Return success response with token and user info
+      res.status(200).json({
+          message: 'Login successful',
+          token: token,
+          user: {
+              id: user.id,
+              email: user.email,
+              role: user.role,
+              fname: user.fname,
+              lname: user.lname,
+              phone: user.phone,
+          },
+      });
+  } catch (error) {
+      console.error('Error during ENS Admin login:', error);
+      res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 app.get('/fullPull/:clientKey', async (req, res) => {
   const { clientKey } = req.params;
   const {

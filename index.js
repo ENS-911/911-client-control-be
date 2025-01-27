@@ -357,34 +357,34 @@ app.post('/admin-login', async (req, res) => {
   }
 
   try {
-      // Fetch user from the database
       const queryResult = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
       const user = queryResult.rows[0];
 
       if (!user) {
+          console.log('User not found for email:', email);
           return res.status(404).json({ error: 'User not found' });
       }
 
-      // Verify the password
-      const isMatch = await bcrypt.compare(password, user.password);
+      // Log user details for debugging
+      console.log('User found:', user);
 
+      const isMatch = await bcrypt.compare(password, user.password);
       if (!isMatch) {
+          console.log('Password mismatch for email:', email);
           return res.status(401).json({ error: 'Invalid credentials' });
       }
 
-      // Check user role (must be ENS Admin)
       if (user.role !== 'ENS Admin') {
+          console.log('Access denied. Role is not ENS Admin:', user.role);
           return res.status(403).json({ error: 'Access restricted to ENS Admin users only.' });
       }
 
-      // Generate a JWT token for the ENS Admin user
       const token = jwt.sign(
           { userId: user.id, email: user.email, role: user.role },
           jwtSecretKey,
-          { expiresIn: '6h' } // Token expires in 6 hours
+          { expiresIn: '6h' }
       );
 
-      // Return success response with token and user info
       res.status(200).json({
           message: 'Login successful',
           token: token,
@@ -532,6 +532,32 @@ app.get('/fullPull/:clientKey', async (req, res) => {
   } catch (error) {
     console.error('Error executing query', error);
     res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+app.post('/verify-token', (req, res) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1]; // Extract token from Bearer scheme
+
+  if (!token) {
+      return res.status(400).json({ error: 'No token provided' });
+  }
+
+  try {
+      const decoded = jwt.verify(token, jwtSecretKey);
+
+      // Optionally fetch the user from the database to validate the session
+      pool.query('SELECT * FROM users WHERE id = $1', [decoded.userId], (err, result) => {
+          if (err || result.rows.length === 0) {
+              return res.status(401).json({ error: 'Invalid token.' });
+          }
+
+          const user = result.rows[0];
+          res.status(200).json({ user });
+      });
+  } catch (err) {
+      console.error('Token verification error:', err);
+      res.status(403).json({ error: 'Invalid token.' });
   }
 });
 

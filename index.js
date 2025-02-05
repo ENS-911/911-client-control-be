@@ -307,6 +307,28 @@ app.put('/update-user', cors(corsOptions), async (req, res) => {
   }
 });
 
+app.get('/users', cors(corsOptions), async (req, res) => {
+  const { key } = req.query;
+
+  if (!key) {
+      return res.status(400).json({ error: "Missing client key" });
+  }
+
+  try {
+      const query = 'SELECT id, fname AS firstName, lname AS lastName, email, phone, department, city, county, role FROM users WHERE key = $1';
+      const { rows } = await pool.query(query, [key]);
+
+      if (rows.length === 0) {
+          return res.status(404).json({ error: "No users found for this client" });
+      }
+
+      res.json(rows);
+  } catch (error) {
+      console.error('Error retrieving users:', error);
+      res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
 app.post('/login', async (req, res) => {
   const { email, password } = req.body;
 

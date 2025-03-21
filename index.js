@@ -149,6 +149,49 @@ app.post('/client/:clientKey/countbar_styles', verifyToken, async (req, res) => 
   }
 });
 
+app.get('/client/:clientKey/map_styles', async (req, res) => {
+  const clientKey = req.params.clientKey;
+  try {
+    const result = await pool.query(
+      'SELECT map_styles FROM clients WHERE key = $1',
+      [clientKey]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Client not found' });
+    }
+
+    res.json(result.rows[0].map_styles);
+  } catch (error) {
+    console.error('Error retrieving map_styles:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+app.post('/client/:clientKey/map_styles', verifyToken, async (req, res) => {
+  const clientKey = req.params.clientKey;
+  const styles = req.body; // Expecting a JSON object with map style settings
+
+  try {
+    const result = await pool.query(
+      'UPDATE clients SET map_styles = $1 WHERE key = $2 RETURNING map_styles',
+      [styles, clientKey]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Client not found' });
+    }
+
+    res.json({
+      message: 'Map styles updated successfully',
+      map_styles: result.rows[0].map_styles
+    });
+  } catch (error) {
+    console.error('Error updating map_styles:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
 app.post('/clients', async (req, res) => {
     try {
     const formData = req.body;
